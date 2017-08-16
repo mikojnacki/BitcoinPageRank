@@ -6,6 +6,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.*;
+import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -51,7 +52,7 @@ public class RunPageRankBasic extends Configured implements Tool {
                 throws IOException, InterruptedException {
             // Pass along node structure.
             intermediateStructure.setNodeId(node.getNodeId());
-            intermediateStructure.setType(PageRankNode.Type.Structure);
+            intermediateStructure.setType(new IntWritable(2)); // Structure
             intermediateStructure.setAdjacencyList(node.getAdjacenyList());
 
             context.write(nid, intermediateStructure);
@@ -62,7 +63,7 @@ public class RunPageRankBasic extends Configured implements Tool {
             if (node.getAdjacenyList().size() > 0) {
                 // Each neighbor gets an equal share of PageRank mass.
                 ArrayListWritable<Text> list = node.getAdjacenyList();
-                float mass = node.getPageRank() - (float) StrictMath.log(list.size());
+                float mass = node.getPageRank().get() - (float) StrictMath.log(list.size());
 
                 context.getCounter(PageRank.edges).increment(list.size());
 
@@ -70,8 +71,8 @@ public class RunPageRankBasic extends Configured implements Tool {
                 for (int i = 0; i < list.size(); i++) {
                     neighbor.set(list.get(i));
                     intermediateMass.setNodeId(list.get(i));
-                    intermediateMass.setType(PageRankNode.Type.Mass);
-                    intermediateMass.setPageRank(mass);
+                    intermediateMass.setType(new IntWritable(1)); // Mass
+                    intermediateMass.setPageRank(new FloatWritable(mass));
 
                     // Emit messages with PageRank mass to neighbors.
                     context.write(neighbor, intermediateMass);
@@ -100,7 +101,7 @@ public class RunPageRankBasic extends Configured implements Tool {
             // Create the node structure that we're going to assemble back together from shuffled pieces.
             PageRankNode node = new PageRankNode();
 
-            node.setType(PageRankNode.Type.Complete);
+            node.setType(new IntWritable(0)); // Complete
             node.setNodeId(nid);
 
             int massMessagesReceived = 0;
@@ -110,7 +111,7 @@ public class RunPageRankBasic extends Configured implements Tool {
             while (values.hasNext()) {
                 PageRankNode n = values.next();
 
-                if (n.getType().equals(PageRankNode.Type.Structure)) {
+                if (n.getType().equals(new IntWritable(2))) { // Structure
                     // This is the structure; update accordingly.
                     ArrayListWritable<Text> list = n.getAdjacenyList();
                     structureReceived++;
@@ -118,13 +119,13 @@ public class RunPageRankBasic extends Configured implements Tool {
                     node.setAdjacencyList(list);
                 } else {
                     // This is a message that contains PageRank mass; accumulate.
-                    mass = sumLogProbs(mass, n.getPageRank());
+                    mass = sumLogProbs(mass, n.getPageRank().get());
                     massMessagesReceived++;
                 }
             }
 
             // Update the final accumulated PageRank mass.
-            node.setPageRank(mass);
+            node.setPageRank(new FloatWritable(mass));
             context.getCounter(PageRank.massMessagesReceived).increment(massMessagesReceived);
 
             // Error checking.
@@ -187,14 +188,14 @@ public class RunPageRankBasic extends Configured implements Tool {
         @Override
         public void map(Text nid, PageRankNode node, Context context)
                 throws IOException, InterruptedException {
-            float p = node.getPageRank();
+            float p = node.getPageRank().get();
 
             float jump = (float) (Math.log(ALPHA) - Math.log(nodeCnt));
             float link = (float) Math.log(1.0f - ALPHA)
                     + sumLogProbs(p, (float) (Math.log(missingMass) - Math.log(nodeCnt)));
 
             p = sumLogProbs(jump, link);
-            node.setPageRank(p);
+            node.setPageRank(new FloatWritable(p));
 
             context.write(nid, node);
         }
