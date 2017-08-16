@@ -53,13 +53,13 @@ public class BuildPageRankRecords extends Configured implements Tool {
             nid.set(arr[0]);
             LOG.info("nid: " + nid.toString());
             if (arr.length == 1) {
-                node.setNodeId(new Text(String.valueOf(arr[0])));
+                node.setNodeId(new Text(arr[0]));
                 LOG.info("node id: " + node.getNodeId().toString());
                 node.setAdjacencyList(new ArrayListWritable<Text>());
                 LOG.info("node list: " + node.getAdjacenyList().toString());
 
             } else {
-                node.setNodeId(new Text(String.valueOf(arr[0])));
+                node.setNodeId(new Text(arr[0]));
                 LOG.info("node id: " + node.getNodeId().toString());
 
 //                int[] neighbors = new int[arr.length - 1];
