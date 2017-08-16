@@ -3,9 +3,7 @@ package com.mikolaj.app;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Created by Mikolaj on 16.08.17.
@@ -110,5 +108,44 @@ public class PageRankNode implements Writable {
         }
 
         adjacenyList.write(out);
+    }
+
+    /**
+     * Returns the serialized representation of this object as a byte array.
+     *
+     * @return byte array representing the serialized representation of this object
+     * @throws IOException if any exception is encountered during object serialization
+     */
+    public byte[] serialize() throws IOException {
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(bytesOut);
+        write(dataOut);
+
+        return bytesOut.toByteArray();
+    }
+
+    /**
+     * Creates object from a <code>DataInput</code>.
+     *
+     * @param in source for reading the serialized representation
+     * @return newly-created object
+     * @throws IOException if any exception is encountered during object deserialization
+     */
+    public static PageRankNode create(DataInput in) throws IOException {
+        PageRankNode m = new PageRankNode();
+        m.readFields(in);
+
+        return m;
+    }
+
+    /**
+     * Creates object from a byte array.
+     *
+     * @param bytes raw serialized representation
+     * @return newly-created object
+     * @throws IOException if any exception is encountered during object deserialization
+     */
+    public static PageRankNode create(byte[] bytes) throws IOException {
+        return create(new DataInputStream(new ByteArrayInputStream(bytes)));
     }
 }
