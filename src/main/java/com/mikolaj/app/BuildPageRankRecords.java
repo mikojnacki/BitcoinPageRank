@@ -5,6 +5,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -40,8 +42,8 @@ public class BuildPageRankRecords extends Configured implements Tool {
             if (n == 0) {
                 throw new RuntimeException(NODE_CNT_FIELD + " cannot be 0!");
             }
-            node.setType(PageRankNode.Type.Complete);
-            node.setPageRank((float) -StrictMath.log(n));
+            node.setType(new IntWritable(0)); // Complete
+            node.setPageRank(new FloatWritable((float) -StrictMath.log(n)));
         }
 
         @Override
@@ -53,13 +55,13 @@ public class BuildPageRankRecords extends Configured implements Tool {
             nid.set(arr[0]);
             LOG.info("nid: " + nid.toString());
             if (arr.length == 1) {
-                node.setNodeId(new Text(String.valueOf(arr[0])));
+                node.setNodeId(new Text(arr[0]));
                 LOG.info("node id: " + node.getNodeId().toString());
                 node.setAdjacencyList(new ArrayListWritable<Text>());
                 LOG.info("node list: " + node.getAdjacenyList().toString());
 
             } else {
-                node.setNodeId(new Text(String.valueOf(arr[0])));
+                node.setNodeId(new Text(arr[0]));
                 LOG.info("node id: " + node.getNodeId().toString());
 
 //                int[] neighbors = new int[arr.length - 1];
