@@ -49,7 +49,7 @@ public class BuildPageRankRecords extends Configured implements Tool {
         @Override
         public void map(LongWritable key, Text t, Context context) throws IOException,
                 InterruptedException {
-            // added LOG.info to debug
+            // Added LOG.info
             String[] arr = t.toString().trim().split("\\s+");
 
             nid.set(arr[0]);
