@@ -85,7 +85,10 @@ public class BuildPageRankRecords extends Configured implements Tool {
             if (arr.length > 1) {
                 context.getCounter("graph", "numActiveNodes").increment(1);
             }
+
             LOG.info("finally nid: " + nid.toString());
+            LOG.info("finally type: " + node.getType().toString());
+            LOG.info("finally pagerank: " + node.getPageRank().toString());
             context.write(nid, node);
         }
     }
