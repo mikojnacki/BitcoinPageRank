@@ -1,5 +1,7 @@
 package com.mikolaj.app;
 
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
@@ -11,32 +13,32 @@ import java.io.IOException;
  * Created by Mikolaj on 16.08.17.
  */
 public class PageRankNode implements Writable {
-    public static enum Type {
-        Complete((byte) 0),  // PageRank mass and adjacency list.
-        Mass((byte) 1),      // PageRank mass only.
-        Structure((byte) 2); // Adjacency list only.
+//    public static enum Type {
+//        Complete((byte) 0),  // PageRank mass and adjacency list.
+//        Mass((byte) 1),      // PageRank mass only.
+//        Structure((byte) 2); // Adjacency list only.
+//
+//        public byte val;
+//
+//        private Type(byte v) {
+//            this.val = v;
+//        }
+//    };
+//
+//    private static final Type[] mapping = new Type[] { Type.Complete, Type.Mass, Type.Structure };
 
-        public byte val;
-
-        private Type(byte v) {
-            this.val = v;
-        }
-    };
-
-    private static final Type[] mapping = new Type[] { Type.Complete, Type.Mass, Type.Structure };
-
-    private Type type;
+    private IntWritable type;
     private Text nodeid;
-    private float pagerank;
+    private FloatWritable pagerank;
     private ArrayListWritable<Text> adjacenyList;
 
     public PageRankNode() {}
 
-    public float getPageRank() {
+    public FloatWritable getPageRank() {
         return pagerank;
     }
 
-    public void setPageRank(float p) {
+    public void setPageRank(FloatWritable p) {
         this.pagerank = p;
     }
 
@@ -56,11 +58,11 @@ public class PageRankNode implements Writable {
         this.adjacenyList = list;
     }
 
-    public Type getType() {
+    public IntWritable getType() {
         return type;
     }
 
-    public void setType(Type type) {
+    public void setType(IntWritable type) {
         this.type = type;
     }
 
@@ -72,17 +74,16 @@ public class PageRankNode implements Writable {
      */
     @Override
     public void readFields(DataInput in) throws IOException {
-        int b = in.readByte();
-        type = mapping[b];
+        type.readFields(in);
         nodeid.readFields(in);
 
-        if (type.equals(Type.Mass)) {
-            pagerank = in.readFloat();
+        if (type.equals(new IntWritable(1))) { // Mass
+            pagerank.readFields(in);
             return;
         }
 
-        if (type.equals(Type.Complete)) {
-            pagerank = in.readFloat();
+        if (type.equals(new IntWritable(0))) { // Complete
+            pagerank.readFields(in);
         }
 
         adjacenyList = new ArrayListWritable<>();
@@ -97,16 +98,16 @@ public class PageRankNode implements Writable {
      */
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeByte(type.val);
+        type.write(out);
         nodeid.write(out);
 
-        if (type.equals(Type.Mass)) {
-            out.writeFloat(pagerank);
+        if (type.equals(new IntWritable(1))) { // Mass
+            pagerank.write(out);
             return;
         }
 
-        if (type.equals(Type.Complete)) {
-            out.writeFloat(pagerank);
+        if (type.equals(new IntWritable(0))) { // Complete
+            pagerank.write(out);
         }
 
         adjacenyList.write(out);
