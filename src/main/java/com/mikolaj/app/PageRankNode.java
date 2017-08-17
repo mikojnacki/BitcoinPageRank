@@ -28,7 +28,13 @@ public class PageRankNode implements Writable {
     private float pagerank;
     private ArrayListWritable<Text> adjacenyList;
 
-    public PageRankNode() {}
+    public PageRankNode() {
+        this.type = Type.Complete;
+        this.nodeid = new Text();
+        this.pagerank = 0.0f;
+        this.adjacenyList = new ArrayListWritable<>();
+
+    }
 
     public float getPageRank() {
         return pagerank;
@@ -83,7 +89,7 @@ public class PageRankNode implements Writable {
             pagerank = in.readFloat();
         }
 
-        adjacenyList = new ArrayListWritable<>();
+        adjacenyList = new ArrayListWritable<>(); // propably line to be erased
         adjacenyList.readFields(in);
     }
 

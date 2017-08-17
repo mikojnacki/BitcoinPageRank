@@ -51,16 +51,16 @@ public class BuildPageRankRecords extends Configured implements Tool {
             String[] arr = t.toString().trim().split("\\s+");
 
             nid.set(arr[0]);
-            LOG.info("nid: " + nid.toString());
+            //LOG.info("nid: " + nid.toString());
             if (arr.length == 1) {
                 node.setNodeId(new Text(arr[0]));
-                LOG.info("node id: " + node.getNodeId().toString());
+                //LOG.info("node id: " + node.getNodeId().toString());
                 node.setAdjacencyList(new ArrayListWritable<Text>());
-                LOG.info("node list: " + node.getAdjacenyList().toString());
+                //LOG.info("node list: " + node.getAdjacenyList().toString());
 
             } else {
                 node.setNodeId(new Text(arr[0]));
-                LOG.info("node id: " + node.getNodeId().toString());
+                //LOG.info("node id: " + node.getNodeId().toString());
 
 //                int[] neighbors = new int[arr.length - 1];
 //                for (int i = 1; i < arr.length; i++) {
@@ -74,7 +74,7 @@ public class BuildPageRankRecords extends Configured implements Tool {
                 }
 
                 node.setAdjacencyList(new ArrayListWritable<>(neighbors));
-                LOG.info("node list: " + node.getAdjacenyList().toString());
+                //LOG.info("node list: " + node.getAdjacenyList().toString());
             }
 
             context.getCounter("graph", "numNodes").increment(1);
@@ -83,7 +83,7 @@ public class BuildPageRankRecords extends Configured implements Tool {
             if (arr.length > 1) {
                 context.getCounter("graph", "numActiveNodes").increment(1);
             }
-            LOG.info("finally nid: " + nid.toString());
+
             context.write(nid, node);
         }
     }
