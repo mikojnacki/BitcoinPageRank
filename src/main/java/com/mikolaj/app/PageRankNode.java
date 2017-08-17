@@ -33,7 +33,7 @@ public class PageRankNode implements Writable {
         this.nodeid = new Text();
         this.pagerank = 0.0f;
         this.adjacenyList = new ArrayListWritable<>();
-
+        //this.adjacenyList = null; //be careful
     }
 
     public float getPageRank() {
@@ -116,6 +116,11 @@ public class PageRankNode implements Writable {
         adjacenyList.write(out);
     }
 
+    @Override
+    public String toString() {
+        return String.format("{%s %.4f %s}", nodeid, pagerank, (adjacenyList == null ? "[]" : adjacenyList.toString()));
+    }
+
     /**
      * Returns the serialized representation of this object as a byte array.
      *
@@ -154,4 +159,6 @@ public class PageRankNode implements Writable {
     public static PageRankNode create(byte[] bytes) throws IOException {
         return create(new DataInputStream(new ByteArrayInputStream(bytes)));
     }
+
+
 }
