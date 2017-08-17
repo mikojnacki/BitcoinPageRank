@@ -54,7 +54,7 @@ public class RunPageRankBasic extends Configured implements Tool {
             intermediateStructure.setType(PageRankNode.Type.Structure);
             intermediateStructure.setAdjacencyList(node.getAdjacenyList());
 
-            // Check consumed key - value records
+            // DEBUG - Check consumed key - value records
             LOG.info("key (nid): " + nid.toString());
             LOG.info("value (type): " + node.getType().toString());
             LOG.info("value (nodeid): " + node.getNodeId().toString());

@@ -44,7 +44,7 @@ import java.util.Arrays;
 public class BuildTextGraph extends Configured implements Tool {
     private static final Logger LOG = Logger.getLogger(BuildPageRankRecords.class);
 
-    private static final String UNKNOWN_ADRESS = "unknown";
+    private static final String UNKNOWN_ADDRESS = "unknown";
 
     private static class MyMapper extends Mapper<LongWritable, Text, Text, Text> {
         private static final Text inAddress = new Text();
@@ -62,7 +62,7 @@ public class BuildTextGraph extends Configured implements Tool {
             }
 
             // omit edges including unknown addresses
-            if (!arr[0].equals(UNKNOWN_ADRESS) || !arr[1].equals(UNKNOWN_ADRESS)) {
+            if (!arr[0].equals(UNKNOWN_ADDRESS) && !arr[1].equals(UNKNOWN_ADDRESS)) {
                 context.getCounter("graph", "numNodes").increment(1);
                 context.getCounter("graph", "numEdges").increment(1);
                 // emit
@@ -83,7 +83,7 @@ public class BuildTextGraph extends Configured implements Tool {
             String outAddresses = "";
             // build String delimited with space and save it as Text
             for (Text value : values) {
-                outAddresses = outAddresses + value.toString() + DELIMITER;
+                outAddresses = outAddresses + DELIMITER + value.toString();
             }
             // emit
             context.write(inAddress, new Text(outAddresses));
@@ -170,6 +170,6 @@ public class BuildTextGraph extends Configured implements Tool {
      * @throws Exception if tool encounters an exception
      */
     public static void main(String[] args) throws Exception {
-        ToolRunner.run(new BuildPageRankRecords(), args);
+        ToolRunner.run(new BuildTextGraph(), args);
     }
 }

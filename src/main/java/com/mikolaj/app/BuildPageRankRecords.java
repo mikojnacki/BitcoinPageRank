@@ -69,7 +69,7 @@ public class BuildPageRankRecords extends Configured implements Tool {
 
                 ArrayList<Text> neighbors = new ArrayList<>();
                 for (int i = 1; i < arr.length; i++) {
-                    LOG.info("neighbor candidate: " + arr[i]);
+                    //LOG.info("neighbor candidate: " + arr[i]);
                     neighbors.add(new Text(arr[i]));
                 }
 
