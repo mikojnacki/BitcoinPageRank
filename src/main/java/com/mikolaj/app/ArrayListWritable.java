@@ -9,6 +9,9 @@ import org.apache.hadoop.io.Writable;
 
 /**
  * Created by Mikolaj on 16.08.17.
+ *
+ * TODO: change toString() formatiing
+ *
  */
 public class ArrayListWritable<E extends Writable> extends ArrayList<E> implements Writable {
     private static final long serialVersionUID = 4911321393319821791L;

@@ -7,6 +7,8 @@ import java.io.*;
 
 /**
  * Created by Mikolaj on 16.08.17.
+ *
+ * TODO: change toString() formating
  */
 public class PageRankNode implements Writable {
     public static enum Type {
