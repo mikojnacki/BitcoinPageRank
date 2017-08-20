@@ -55,12 +55,12 @@ public class RunPageRankBasic extends Configured implements Tool {
             intermediateStructure.setAdjacencyList(node.getAdjacenyList());
 
             // DEBUG - Check consumed key - value records
-            LOG.info("key (nid): " + nid.toString());
-            LOG.info("value (type): " + node.getType().toString());
-            LOG.info("value (nodeid): " + node.getNodeId().toString());
-            LOG.info("value (pagerank): " + String.valueOf(node.getPageRank()));
-            LOG.info("value (adjacencyList): " + node.getAdjacenyList().toString());
-            LOG.info("<PageRankNode> value.toString(): " + node.toString());
+            //LOG.info("key (nid): " + nid.toString());
+            //LOG.info("value (type): " + node.getType().toString());
+            //LOG.info("value (nodeid): " + node.getNodeId().toString());
+            //LOG.info("value (pagerank): " + String.valueOf(node.getPageRank()));
+            //LOG.info("value (adjacencyList): " + node.getAdjacenyList().toString());
+            //LOG.info("<PageRankNode> value.toString(): " + node.toString());
 
             context.write(nid, intermediateStructure);
 

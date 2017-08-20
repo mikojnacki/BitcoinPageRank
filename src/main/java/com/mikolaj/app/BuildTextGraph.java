@@ -52,7 +52,8 @@ public class BuildTextGraph extends Configured implements Tool {
 
         public void map(LongWritable key, Text t, Context context) throws IOException, InterruptedException {
 
-            String[] arr = t.toString().trim().split("\\s+");
+            //String[] arr = t.toString().trim().split("\\s+");
+            String[] arr = t.toString().trim().split(",");
 
             if (arr.length != 2) {
                 throw new RuntimeException("Wrong input data! Should be '<inAddress> <outAdress>'");
