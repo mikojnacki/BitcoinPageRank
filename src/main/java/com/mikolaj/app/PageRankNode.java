@@ -6,7 +6,7 @@ import org.apache.hadoop.io.Writable;
 import java.io.*;
 
 /**
- * Created by Mikolaj on 16.08.17.
+ * Credits to Jimmy Lin @lintool
  *
  * TODO: change toString() formating
  */

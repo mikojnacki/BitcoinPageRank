@@ -1,31 +1,35 @@
 package com.mikolaj.app;
 
-import java.io.IOException;
-import java.util.ArrayList;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Based on https://github.com/adamjshook/mapreducepatterns
  * Credits to Adam J. Shook @adamjshook
+ *
+ * Classes to be used from withing PrepareDataset.class runThirdJoin() method to perform query:
+ *
+ * SELECT out1.addres as in_address, out2.address as out_addres
+ * JOIN txout out2 ON txinprevid.tx_id = out2.tx_id;
+ *
+ * The txinprevid (after 2nd join) input dataset consist of columns:
+ *
+ * | txinprevid.tx_id | out1.address (as in_address) |
+ *
+ * The result is a table with given columns:
+ *
+ * | out1.address (as in_address) | out2.address (as out_address) |
+ *
  */
-public class GenericReduceSideJoin {
-    private static final Logger LOG = Logger.getLogger(FindMaxPageRankNodes.class);
+public class PrepareThirdJoin {
+    private static final Logger LOG = Logger.getLogger(PrepareSecondJoin.class);
 
-    public static class TxinJoinMapper extends Mapper<Object, Text, Text, Text> {
-
-        // txin JOIN txout ON txin.prev_out = tx.hash
+    public static class TxinprevidJoinMapper extends Mapper<Object, Text, Text, Text> {
 
         private Text outkey = new Text();
         private Text outvalue = new Text();
@@ -34,26 +38,26 @@ public class GenericReduceSideJoin {
         public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
 
-            // Split the input string
-            String[] txinRecord = value.toString().trim().split(",");
-            String txinPrevOut = txinRecord[2]; // Txin 3rd column with name prev_out
+            // Split the input string:
+            // | txinprevid.tx_id | out1.address (as in_address) |
+            String[] txinprevidRecord = value.toString().trim().split(",");
+            // txinprevidRecord[0] - 1st column with name tx_id
+            // txinprevidRecord[1] - 2nd column with name in_address
 
-            if (txinPrevOut == null) {
+            if (txinprevidRecord[0] == null || txinprevidRecord[1] == null) {
                 return;
             }
 
-            // The foreign join key is the txinPrevOut
-            outkey.set(txinPrevOut);
+            // Set foreign key
+            outkey.set(txinprevidRecord[0]);
 
             // Flag this record for the reducer and then output
-            outvalue.set("A" + value.toString());
+            outvalue.set("A" + txinprevidRecord[1]);
             context.write(outkey, outvalue);
         }
     }
 
-    public static class TxJoinMapper extends Mapper<Object, Text, Text, Text> {
-
-        // txin JOIN txout ON txin.prev_out = tx.hash
+    public static class TxoutAsOut2JoinMapper extends Mapper<Object, Text, Text, Text> {
 
         private Text outkey = new Text();
         private Text outvalue = new Text();
@@ -62,26 +66,32 @@ public class GenericReduceSideJoin {
         public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
 
-            // Split the input string
-            String[] txRecord = value.toString().trim().split(",");
-            String txHash = txRecord[1]; // Tx 2rd column with name hash
+//            id BIGINT
+//            ,tx_idx INT
+//            ,address VARCHAR(34)
+//            ,value BIGINT
+//            ,type VARCHAR(8)
+//            ,tx_id BIGINT
 
-            if (txHash == null) {
+            // Split the input string
+            String[] txoutRecord = value.toString().trim().split(",");
+            // txoutRecord[5] - 6th column with name txout.tx_id
+            // txoutRecord[2] - 3rd column with name txout.address (as out_address)
+
+            if (txoutRecord[5] == null || txoutRecord[2] == null) {
                 return;
             }
 
-            // The foreign join key is the user ID
-            outkey.set(txHash);
+            // Set foreign key
+            outkey.set(txoutRecord[5]);
 
             // Flag this record for the reducer and then output
-            outvalue.set("B" + value.toString());
+            outvalue.set("B" + txoutRecord[2]);
             context.write(outkey, outvalue);
         }
     }
 
-    public static class TxinTxJoinReducer extends Reducer<Text, Text, Text, Text> {
-
-        // txin JOIN txout ON txin.prev_out = tx.hash
+    public static class ThirdJoinReducer extends Reducer<Text, Text, Text, Text> {
 
         private ArrayList<Text> listA = new ArrayList<Text>();
         private ArrayList<Text> listB = new ArrayList<Text>();
@@ -108,8 +118,7 @@ public class GenericReduceSideJoin {
                 if (t.charAt(0) == 'A') {
                     listA.add(new Text(t.toString().substring(1)));
                 } else if (t.charAt(0) == 'B') {
-                    //listB.add(new Text(t.toString().substring(1)));
-                    listB.add(new Text(t.toString().substring(1, t.toString().indexOf(","))));
+                    listB.add(new Text(t.toString().substring(1)));
                 }
             }
 
@@ -195,60 +204,5 @@ public class GenericReduceSideJoin {
                         "Join type not set to inner, leftouter, rightouter, fullouter, or anti");
             }
         }
-    }
-
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        String[] otherArgs = new GenericOptionsParser(conf, args)
-                .getRemainingArgs();
-        if (otherArgs.length != 4) {
-            System.err
-                    .println("Usage: ReduceSideJoin <dataset A> <dataset B> <output> [inner|leftouter|rightouter|fullouter|anti]");
-            System.exit(1);
-        }
-
-        String joinType = otherArgs[3];
-        if (!(joinType.equalsIgnoreCase("inner")
-                || joinType.equalsIgnoreCase("leftouter")
-                || joinType.equalsIgnoreCase("rightouter")
-                || joinType.equalsIgnoreCase("fullouter") || joinType
-                .equalsIgnoreCase("anti"))) {
-            System.err
-                    .println("Join type not set to inner, leftouter, rightouter, fullouter, or anti");
-            System.exit(2);
-        }
-
-        // Set TextOutputFormat separator to comma
-        conf.set("mapred.textoutputformat.separator", ",");
-
-        Job job = new Job(conf, "Reduce Side Join");
-
-        // Configure the join type
-        job.getConfiguration().set("join.type", joinType);
-        job.setJarByClass(GenericReduceSideJoin.class);
-
-        // Use multiple inputs to set which input uses what mapper
-        // This will keep parsing of each data set separate from a logical
-        // standpoint
-        // However, this version of Hadoop has not upgraded MultipleInputs
-        // to the mapreduce package, so we have to use the deprecated API.
-        // Future releases have this in the "mapreduce" package.
-        MultipleInputs.addInputPath(job, new Path(otherArgs[0]),
-                TextInputFormat.class, TxinJoinMapper.class);
-
-        MultipleInputs.addInputPath(job, new Path(otherArgs[1]),
-                TextInputFormat.class, TxJoinMapper.class);
-
-        job.setReducerClass(TxinTxJoinReducer.class);
-
-        FileOutputFormat.setOutputPath(job, new Path(otherArgs[2]));
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
-
-        // Delete the output directory if it exists already.
-        FileSystem.get(conf).delete(new Path(otherArgs[2]), true);
-
-        System.exit(job.waitForCompletion(true) ? 0 : 3);
     }
 }
