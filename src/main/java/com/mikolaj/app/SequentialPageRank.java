@@ -17,6 +17,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 /**
+ * Modified by Mikolaj Chojnacki
  * Credits to Jimmy Lin @lintool
  */
 public class SequentialPageRank {

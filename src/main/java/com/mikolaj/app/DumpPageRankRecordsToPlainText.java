@@ -18,7 +18,8 @@ import org.apache.log4j.Logger;
 import java.util.Arrays;
 
 /**
- * Created by Mikolaj on 17.08.17.
+ * Modified by Mikolaj Chojnacki
+ * Credits to Jimmy Lin @lintool
  */
 public class DumpPageRankRecordsToPlainText extends Configured implements Tool {
     private static final Logger LOG = Logger.getLogger(DumpPageRankRecordsToPlainText.class);

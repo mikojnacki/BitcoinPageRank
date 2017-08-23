@@ -2,6 +2,7 @@ package com.mikolaj.app;
 
 /**
  * Based on https://github.com/lintool/tools/blob/master/lintools-datatypes/src/main/java/tl/lin/data/pair/PairOfObjectFloat.java
+ * Modified by Mikolaj Chojnacki
  * Credits to Jimmy Lin @lintool
  */
 public class PairOfObjectFloat<L extends Comparable<L>> implements Comparable<PairOfObjectFloat<L>> {

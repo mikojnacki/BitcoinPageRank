@@ -10,7 +10,8 @@ import org.apache.hadoop.io.Writable;
 /**
  * Created by Mikolaj on 16.08.17.
  *
- * TODO: change toString() formatiing
+ * Modified by Mikolaj Chojnacki
+ * Credits to Jimmy Lin @lintool
  *
  */
 public class ArrayListWritable<E extends Writable> extends ArrayList<E> implements Writable {

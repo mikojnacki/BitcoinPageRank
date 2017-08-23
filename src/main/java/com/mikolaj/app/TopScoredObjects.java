@@ -4,7 +4,8 @@ import org.apache.hadoop.util.PriorityQueue;
 
 /**
  *  Based on https://github.com/lintool/tools/blob/master/lintools-datatypes/src/main/java/tl/lin/data/queue/TopScoredObjects.java
- *  Credits to Jimmy Lin @lintool
+ * Modified by Mikolaj Chojnacki
+ * Credits to Jimmy Lin @lintool
  */
 public class TopScoredObjects<K extends Comparable<K>> {
     private class ScoredObjectPriorityQueue extends PriorityQueue<PairOfObjectFloat<K>> {

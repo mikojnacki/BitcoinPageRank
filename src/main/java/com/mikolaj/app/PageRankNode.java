@@ -6,8 +6,8 @@ import org.apache.hadoop.io.Writable;
 import java.io.*;
 
 /**
+ * Modified by Mikolaj Chojnacki
  * Credits to Jimmy Lin @lintool
- *
  * TODO: change toString() formating
  */
 public class PageRankNode implements Writable {

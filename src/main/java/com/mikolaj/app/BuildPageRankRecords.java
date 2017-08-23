@@ -23,7 +23,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * Created by Mikolaj on 16.08.17.
+ * Modified by Mikolaj Chojnacki
+ * Credits to Jimmy Lin @lintool
  */
 public class BuildPageRankRecords extends Configured implements Tool {
     private static final Logger LOG = Logger.getLogger(BuildPageRankRecords.class);

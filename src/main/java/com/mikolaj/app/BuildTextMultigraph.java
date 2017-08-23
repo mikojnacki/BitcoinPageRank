@@ -19,7 +19,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
 
 /**
  * Created by Mikolaj on 17.08.17.
@@ -30,7 +30,6 @@ import java.util.*;
  * FROM (SELECT txin.prev_out, txin.prev_out_index, txin.tx_id, tx.id AS prev_id FROM txin JOIN tx ON txin.prev_out = tx.hash ) txinprevid
  * JOIN txout out1 ON (txinprevid.prev_id = out1.tx_id AND txinprevid.prev_out_index = out1.tx_idx)
  * JOIN txout out2 ON txinprevid.tx_id = out2.tx_id
- * JOIN tx ON txinprevid.tx_id = tx.id;
  *
  *  Example of data: inAddress> outAddress
  *
@@ -39,22 +38,19 @@ import java.util.*;
  *  ....
  *
  *  Job parses and groups it, giving on the output 2 columns: inAddress (node id) and list of outAddresses (adjacency list)
- *  Modified -> creates graph insead of multigraph (reduces duplicate edges)
  *
  */
-public class BuildTextGraph extends Configured implements Tool {
+public class BuildTextMultigraph extends Configured implements Tool {
     private static final Logger LOG = Logger.getLogger(BuildPageRankRecords.class);
 
     private static final String UNKNOWN_ADDRESS = "unknown";
 
     private static class MyMapper extends Mapper<LongWritable, Text, Text, Text> {
-        //private static final Text inAddress = new Text();
-        //private static final Text outAddress = new Text();
+        private static final Text inAddress = new Text();
+        private static final Text outAddress = new Text();
 
         public void map(LongWritable key, Text t, Context context) throws IOException, InterruptedException {
 
-            Text inAddress = new Text();
-            Text outAddress = new Text();
             //String[] arr = t.toString().trim().split("\\s+");
             String[] arr = t.toString().trim().split(",");
 
@@ -84,25 +80,10 @@ public class BuildTextGraph extends Configured implements Tool {
         public void reduce(Text inAddress, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
 
-            //ArrayList<String> adjacencyArray = new ArrayList<>();
-            Set<String> adjacencySet = new HashSet<>();
-
-            // deduplicate adjacency list
-            for (Text t : values) {
-                adjacencySet.add(t.toString());
-                //adjacencyArray.add(t.toString()); // for debug
-            }
-//            if (adjacencyArray.size() != adjacencySet.size()) {
-//                LOG.info("adjacency list before deduplication: " + String.valueOf(adjacencyArray.size())); // for debug
-//                LOG.info("adjacency list after deduplication: " + String.valueOf(adjacencySet.size())); // for debug
-//                LOG.info(String.valueOf(adjacencyArray.size() - adjacencySet.size()) + " edges has been deduplicated");
-//            }
-
-
             String outAddresses = "";
             // build String delimited with space and save it as Text
-            for (String value : adjacencySet) {
-                outAddresses = outAddresses + DELIMITER + value;
+            for (Text value : values) {
+                outAddresses = outAddresses + DELIMITER + value.toString();
             }
             // emit
             context.write(inAddress, new Text(outAddresses));
@@ -111,7 +92,7 @@ public class BuildTextGraph extends Configured implements Tool {
     }
 
 
-    public BuildTextGraph() {}
+    public BuildTextMultigraph() {}
 
     private static final String INPUT = "input";
     private static final String OUTPUT = "output";
@@ -148,7 +129,7 @@ public class BuildTextGraph extends Configured implements Tool {
         String inputPath = cmdline.getOptionValue(INPUT);
         String outputPath = cmdline.getOptionValue(OUTPUT);
 
-        LOG.info("Tool name: " + BuildTextGraph.class.getSimpleName());
+        LOG.info("Tool name: " + BuildTextMultigraph.class.getSimpleName());
         LOG.info(" - inputDir: " + inputPath);
         LOG.info(" - outputDir: " + outputPath);
 
@@ -156,8 +137,8 @@ public class BuildTextGraph extends Configured implements Tool {
         conf.setInt("mapred.min.split.size", 1024 * 1024 * 1024);
 
         Job job = Job.getInstance(conf);
-        job.setJobName(BuildTextGraph.class.getSimpleName() + ":" + inputPath);
-        job.setJarByClass(BuildTextGraph.class);
+        job.setJobName(BuildTextMultigraph.class.getSimpleName() + ":" + inputPath);
+        job.setJarByClass(BuildTextMultigraph.class);
 
         FileInputFormat.addInputPath(job, new Path(inputPath));
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
@@ -189,6 +170,6 @@ public class BuildTextGraph extends Configured implements Tool {
      * @throws Exception if tool encounters an exception
      */
     public static void main(String[] args) throws Exception {
-        ToolRunner.run(new BuildTextGraph(), args);
+        ToolRunner.run(new BuildTextMultigraph(), args);
     }
 }

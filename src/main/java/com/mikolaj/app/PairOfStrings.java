@@ -12,6 +12,7 @@ import java.util.Objects;
 
 /**
  * Based on https://github.com/lintool/tools/blob/master/lintools-datatypes/src/main/java/tl/lin/data/pair/PairOfStrings.java
+ * Modified by Mikolaj Chojnacki
  * Credits to Jimmy Lin @lintool
  *
  * WritableComparable representing a pair of Strings. The elements in the pair are referred to as

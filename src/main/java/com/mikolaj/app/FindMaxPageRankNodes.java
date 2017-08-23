@@ -23,7 +23,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 /**
- * Created by Mikolaj on 19.08.17.
+ * Modified by Mikolaj Chojnacki
+ * Credits to Jimmy Lin @lintool
  */
 public class FindMaxPageRankNodes extends Configured implements Tool {
     private static final Logger LOG = Logger.getLogger(FindMaxPageRankNodes.class);
