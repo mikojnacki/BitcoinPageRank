@@ -3,7 +3,9 @@ package com.mikolaj.app;
 import org.apache.commons.cli.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -179,6 +181,22 @@ public class BuildTextGraph extends Configured implements Tool {
 
         job.waitForCompletion(true);
 
+        // *** Finalize creation of graph - add remaining nodes form out_address ***
+        // *** Remaining nodes obtained by PrepareDataset metods: runDistinctOutAddresses() and runRemainingNodesJoin()
+        // *** running equivalently to this SQL statement:
+        // ***     SELECT A.out_address FROM (SELECT DISTINCT out_address FROM edges)
+        // ***     A LEFT OUTER JOIN edges B ON A.out_address = B.in_address WHERE B.in_address IS NULL;
+
+        // copy join-Output/remaining-nodes-join/part-r-00000 to graph-TextRecords
+        FileSystem fs = FileSystem.get(conf);
+        Path src = new Path("join-Output/remaining-nodes-join/remaining-nodes-r-00000");
+        Path dst = new Path(outputPath + "/");
+        FileUtil.copy(fs, src, fs, dst, false, false, conf);
+        // concat with remaining nodes
+        Path srcDir = new Path(outputPath + "/");
+        Path dstFile = new Path(outputPath + "/adjacency-list");
+        FileUtil.copyMerge(fs, srcDir, fs, dstFile, false, conf, "");
+
         return 0;
     }
 
@@ -190,5 +208,6 @@ public class BuildTextGraph extends Configured implements Tool {
      */
     public static void main(String[] args) throws Exception {
         ToolRunner.run(new BuildTextGraph(), args);
+
     }
 }

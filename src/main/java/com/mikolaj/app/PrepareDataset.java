@@ -5,8 +5,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -110,8 +112,11 @@ public class PrepareDataset extends Configured implements Tool {
         runFirstJoin(txinInputPath, txInputPath, outputPath, "inner");
         runSecondJoin(outputPath + "/first-join", txoutInputPath, outputPath, "inner");
         runThirdJoin(outputPath + "/second-join", txoutInputPath, outputPath, "inner");
+        runDistinctOutAddresses(outputPath + "/third-join", outputPath);
+        runRemainingNodesJoin(outputPath + "/distinct-out-addresses",
+                outputPath + "/third-join", outputPath, "leftouter"); // left outer join with result of Third JOIN
 
-        // TODO: delete /first-join and /second-join directories maybe
+        //TODO: consider to remove mid-steps data
 
         return 0;
     }
@@ -125,6 +130,7 @@ public class PrepareDataset extends Configured implements Tool {
         job.setJobName("PrepareDataset - first JOIN");
         job.setJarByClass(PrepareDataset.class);
         job.getConfiguration().set("join.type", joinType);
+
 
         String out = outputPath + "/first-join";
 
@@ -211,7 +217,7 @@ public class PrepareDataset extends Configured implements Tool {
         job.setJarByClass(PrepareDataset.class);
         job.getConfiguration().set("join.type", joinType);
 
-        String out = outputPath + "/final-join";
+        String out = outputPath + "/third-join";
 
         LOG.info("Third JOIN");
         LOG.info(" - secondJoinResultInput: " + secondJoinInputPath);
@@ -241,5 +247,85 @@ public class PrepareDataset extends Configured implements Tool {
         job.waitForCompletion(true);
         System.out.println("Third JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
 
+    }
+
+    private void runDistinctOutAddresses(String thirdJoinInputPath, String outputPath)
+            throws IOException, InterruptedException, ClassNotFoundException {
+
+        // SELECT DISTINCT A.out_address FROM edges
+
+        Job job = Job.getInstance(getConf());
+        job.setJobName("PrepareDataset - Distinct out addresses");
+        job.setJarByClass(PrepareDataset.class);
+
+        String out = outputPath + "/distinct-out-addresses";
+
+        LOG.info("DISTINCT out addresses");
+        LOG.info(" - thirdJoinInputPath: " + thirdJoinInputPath);
+        LOG.info(" - output: " + out);
+
+        FileInputFormat.addInputPath(job, new Path(thirdJoinInputPath));
+
+        job.setMapperClass(PrepareDistinctOutAddresses.DistinctMapper.class);
+        job.setReducerClass(PrepareDistinctOutAddresses.DistinctReducer.class);
+
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(NullWritable.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(NullWritable.class);
+
+        job.setOutputFormatClass(TextOutputFormat.class);
+        FileOutputFormat.setOutputPath(job, new Path(out));
+
+        FileSystem.get(getConf()).delete(new Path(out), true);
+
+        long startTime = System.currentTimeMillis();
+        job.waitForCompletion(true);
+        System.out.println("Third JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+    }
+
+    private void runRemainingNodesJoin(String distinctOutAddressesInputPath, String thirdJoinInputPath,
+                                       String outputPath, String joinType)
+            throws IOException, InterruptedException, ClassNotFoundException {
+
+        Job job = Job.getInstance(getConf());
+        job.setJobName("PrepareDataset - remaining nodes JOIN");
+        job.setJarByClass(PrepareDataset.class);
+        job.getConfiguration().set("join.type", joinType);
+        job.getConfiguration().set("mapreduce.output.basename", "remaining-nodes");
+
+        // since here we get one column, we dont want a trailing comma
+        job.getConfiguration().set("mapred.textoutputformat.separator", "");
+
+        String out = outputPath + "/remaining-nodes-join";
+
+        LOG.info("Remaining nodes JOIN");
+        LOG.info(" - distinctOutAddressesInput: " + distinctOutAddressesInputPath);
+        LOG.info(" - edgesInput: " + thirdJoinInputPath);
+        LOG.info(" - output: " + out);
+        LOG.info(" - joinType: " + joinType);
+
+        MultipleInputs.addInputPath(job, new Path(distinctOutAddressesInputPath),
+                TextInputFormat.class, PrepareRemainingNodesJoin.DistinctOutAddressesJoinMapper.class);
+        MultipleInputs.addInputPath(job, new Path(thirdJoinInputPath),
+                TextInputFormat.class, PrepareRemainingNodesJoin.OutAddressesJoinMapper.class);
+
+        job.setReducerClass(PrepareRemainingNodesJoin.RemainingNodesJoinReducer.class);
+
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(Text.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        job.setOutputFormatClass(TextOutputFormat.class);
+        FileOutputFormat.setOutputPath(job, new Path(out));
+
+        FileSystem.get(getConf()).delete(new Path(out), true);
+
+        long startTime = System.currentTimeMillis();
+        job.waitForCompletion(true);
+        System.out.println("Third JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
     }
 }
