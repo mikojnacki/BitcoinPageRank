@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
+ * VERSION FOR WEIGHTED PAGERANK
+ *
  * Class to perform a query:
  *
  * SELECT out1.address as in_address, out2.address as out_address
