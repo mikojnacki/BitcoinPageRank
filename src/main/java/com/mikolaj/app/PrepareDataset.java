@@ -312,6 +312,7 @@ public class PrepareDataset extends Configured implements Tool {
                 TextInputFormat.class, PrepareRemainingNodesJoin.OutAddressesJoinMapper.class);
 
         job.setReducerClass(PrepareRemainingNodesJoin.RemainingNodesJoinReducer.class);
+        job.setNumReduceTasks(1); // not sure
 
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Text.class);
