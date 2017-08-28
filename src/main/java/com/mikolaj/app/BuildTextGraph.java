@@ -101,6 +101,29 @@ public class BuildTextGraph extends Configured implements Tool {
             }
 
             // fold HashMap as one line String (adjcacency list) delimited with space and save it as Text
+            // *** THIRD VERSION ***
+            String outAddressesAndWeights = "";
+            Long outSum = 0L;
+            for (Long v : hm.values()) {
+                outSum = outSum + v;
+            }
+            for (Map.Entry<String, Long> entry : hm.entrySet()) {
+                outAddressesAndWeights = outAddressesAndWeights + DELIMITER + entry.getKey() + "|"
+                        + String.valueOf(entry.getValue()) + "|" + String.valueOf(outSum);
+            }
+            context.write(inAddress, new Text(outAddressesAndWeights));
+
+            // *** SECOND VERSION ***
+
+//            String outAddressesAndAmounts = "";
+//            Long outSum = 0L;
+//            for (Map.Entry<String, Long> entry : hm.entrySet()) {
+//                outAddressesAndAmounts = outAddressesAndAmounts + DELIMITER + entry.getKey() + "|"
+//                        + String.valueOf(entry.getValue());
+//                outSum = outSum + entry.getValue();
+//            }
+//            context.write(new Text(inAddress.toString() + "|" + String.valueOf(outSum)),
+//                    new Text(outAddressesAndAmounts));
 
             // *** FIRST VERSION ***
 
@@ -120,18 +143,6 @@ public class BuildTextGraph extends Configured implements Tool {
 //                }
 //            }
 //            context.write(inAddress, new Text(outAddressesAndWeights));
-
-            // *** SECOND VERSION ***
-
-            String outAddressesAndAmounts = "";
-            Long outSum = 0L;
-            for (Map.Entry<String, Long> entry : hm.entrySet()) {
-                outAddressesAndAmounts = outAddressesAndAmounts + DELIMITER + entry.getKey() + "|"
-                        + String.valueOf(entry.getValue());
-                outSum = outSum + entry.getValue();
-            }
-            context.write(new Text(inAddress.toString() + "|" + String.valueOf(outSum)),
-                    new Text(outAddressesAndAmounts));
 
         }
 

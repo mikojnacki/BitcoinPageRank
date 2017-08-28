@@ -69,16 +69,24 @@ public class RunPageRankBasic extends Configured implements Tool {
 
             // Distribute PageRank mass to neighbors (along outgoing edges).
             if (node.getAdjacenyList().size() > 0) {
-                // Each neighbor gets an equal share of PageRank mass.
+                // Each neighbor gets a proportional share of PageRank mass - based on weight
                 ArrayListWritable<Text> list = node.getAdjacenyList();
-                float mass = node.getPageRank() - (float) StrictMath.log(list.size());
+                float mass;
+                long amount;
+                long outSum;
 
                 context.getCounter(PageRank.edges).increment(list.size());
 
-                // Iterate over neighbors.
+                // Iterate over neighbors
                 for (int i = 0; i < list.size(); i++) {
-                    neighbor.set(list.get(i));
-                    intermediateMass.setNodeId(list.get(i));
+                    // get amount and outSum from neighbor
+                    amount = Long.valueOf(list.get(i).toString().trim().split("\\|")[1]); // consider try catch
+                    outSum = Long.valueOf(list.get(i).toString().trim().split("\\|")[2]); // consider try catch
+                    // calculate proportional mass
+                    mass = node.getPageRank() + (float) StrictMath.log(amount) - (float) StrictMath.log(outSum);
+
+                    neighbor.set(list.get(i).toString().trim().split("\\|")[0]);
+                    intermediateMass.setNodeId(new Text(list.get(i).toString().trim().split("\\|")[0]));
                     intermediateMass.setType(PageRankNode.Type.Mass);
                     intermediateMass.setPageRank(mass);
 
