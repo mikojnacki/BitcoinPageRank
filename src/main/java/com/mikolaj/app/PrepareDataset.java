@@ -111,11 +111,11 @@ public class PrepareDataset extends Configured implements Tool {
         LOG.info(" - outputDir: " + outputPath);
 
         // Run JOIN jobs
-        //runFirstJoin(txinInputPath, txInputPath, outputPath, "inner");
-        //runSecondJoin(outputPath + "/first-join", txoutInputPath, outputPath, "inner");
-        //runThirdJoin(outputPath + "/second-join", txoutInputPath, outputPath, "inner");
-        //runFourthJoin(outputPath + "/third-join", txInputPath, outputPath, "inner");
-        //runMapToEdges(outputPath + "/fourth-join", outputPath);
+        runFirstJoin(txinInputPath, txInputPath, outputPath, "inner");
+        runSecondJoin(outputPath + "/first-join", txoutInputPath, outputPath, "inner");
+        runThirdJoin(outputPath + "/second-join", txoutInputPath, outputPath, "inner");
+        runFourthJoin(outputPath + "/third-join", txInputPath, outputPath, "inner");
+        runMapToEdges(outputPath + "/fourth-join", outputPath);
         runDistinctOutAddresses(outputPath + "/edges", outputPath);
         runRemainingNodesJoin(outputPath + "/distinct-out-addresses",
                 outputPath + "/edges", outputPath, "leftouter"); // left outer join with result of Third JOIN
