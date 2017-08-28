@@ -116,6 +116,7 @@ public class BuildTextGraph extends Configured implements Tool {
     public BuildTextGraph() {}
 
     private static final String INPUT = "input";
+    private static final String REMAINING_NODES = "remainingNodes";
     private static final String OUTPUT = "output";
 
     /**
@@ -125,7 +126,8 @@ public class BuildTextGraph extends Configured implements Tool {
     public int run(String[] args) throws Exception {
         Options options = new Options();
 
-        options.addOption(OptionBuilder.withArgName("path").hasArg().withDescription("input path").create(INPUT));
+        options.addOption(OptionBuilder.withArgName("path").hasArg().withDescription("edges path").create(INPUT));
+        options.addOption(OptionBuilder.withArgName("path").hasArg().withDescription("input path").create(REMAINING_NODES));
         options.addOption(OptionBuilder.withArgName("path").hasArg().withDescription("output path").create(OUTPUT));
 
         CommandLine cmdline;
@@ -138,7 +140,7 @@ public class BuildTextGraph extends Configured implements Tool {
             return -1;
         }
 
-        if (!cmdline.hasOption(INPUT) || !cmdline.hasOption(OUTPUT)) {
+        if (!cmdline.hasOption(INPUT) || !cmdline.hasOption(REMAINING_NODES) || !cmdline.hasOption(OUTPUT)) {
             System.out.println("args: " + Arrays.toString(args));
             HelpFormatter formatter = new HelpFormatter();
             formatter.setWidth(120);
@@ -148,10 +150,12 @@ public class BuildTextGraph extends Configured implements Tool {
         }
 
         String inputPath = cmdline.getOptionValue(INPUT);
+        String remainingNodesPath = cmdline.getOptionValue(REMAINING_NODES);
         String outputPath = cmdline.getOptionValue(OUTPUT);
 
         LOG.info("Tool name: " + BuildTextGraph.class.getSimpleName());
-        LOG.info(" - inputDir: " + inputPath);
+        LOG.info(" - edgesDir: " + inputPath);
+        LOG.info(" - remainingNodesDir: " + remainingNodesPath);
         LOG.info(" - outputDir: " + outputPath);
 
         Configuration conf = getConf();
@@ -189,7 +193,7 @@ public class BuildTextGraph extends Configured implements Tool {
 
         // copy join-Output/remaining-nodes-join/part-r-00000 to graph-TextRecords
         FileSystem fs = FileSystem.get(conf);
-        Path src = new Path("join-Output/remaining-nodes-join/remaining-nodes-r-00000");
+        Path src = new Path(remainingNodesPath + "/remaining-nodes-r-00000");
         Path dst = new Path(outputPath + "/");
         FileUtil.copy(fs, src, fs, dst, false, false, conf);
         // concat with remaining nodes
