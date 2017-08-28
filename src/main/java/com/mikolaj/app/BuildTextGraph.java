@@ -115,7 +115,7 @@ public class BuildTextGraph extends Configured implements Tool {
 
     public BuildTextGraph() {}
 
-    private static final String INPUT = "input";
+    private static final String INPUT = "edges";
     private static final String REMAINING_NODES = "remainingNodes";
     private static final String OUTPUT = "output";
 
