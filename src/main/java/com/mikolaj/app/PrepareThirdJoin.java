@@ -9,21 +9,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
+ * WEIGHTED VERSION - add txout.value (out_address value) and add tx_id (for 4th JOIN purpose)
+ *
  * Based on https://github.com/adamjshook/mapreducepatterns
  * Credits to Adam J. Shook @adamjshook
  *
  * Classes to be used from withing PrepareDataset.class runThirdJoin() method to perform query:
  *
- * SELECT out1.addres as in_address, out2.address as out_addres
+ * SELECT out1.addres AS in_address, out1.value AS in_value, out2.address AS out_addres, out2.value AS out_value
  * JOIN txout out2 ON txinprevid.tx_id = out2.tx_id;
  *
  * The txinprevid (after 2nd join) input dataset consist of columns:
  *
- * | txinprevid.tx_id | out1.address (as in_address) |
+ * | txinprevid.tx_id | out1.address (as in_address) | out1.value (as in_value) |
  *
  * The result is a table with given columns:
  *
- * | out1.address (as in_address) | out2.address (as out_address) |
+ * | tx_id | out1.address (as in_address) | ou1.value (as in_value) | out2.address (as out_address) | out2.value (as out_value) |
  *
  */
 public class PrepareThirdJoin {
@@ -43,6 +45,7 @@ public class PrepareThirdJoin {
             String[] txinprevidRecord = value.toString().trim().split(",");
             // txinprevidRecord[0] - 1st column with name tx_id
             // txinprevidRecord[1] - 2nd column with name in_address
+            // txinprevidRecord[2] - 3rd column with name in_value
 
             if (txinprevidRecord[0] == null || txinprevidRecord[1] == null) {
                 return;
@@ -52,7 +55,7 @@ public class PrepareThirdJoin {
             outkey.set(txinprevidRecord[0]);
 
             // Flag this record for the reducer and then output
-            outvalue.set("A" + txinprevidRecord[1]);
+            outvalue.set("A" + txinprevidRecord[0] + "," + txinprevidRecord[1] + "," + txinprevidRecord[2]);
             context.write(outkey, outvalue);
         }
     }
@@ -77,6 +80,7 @@ public class PrepareThirdJoin {
             String[] txoutRecord = value.toString().trim().split(",");
             // txoutRecord[5] - 6th column with name txout.tx_id
             // txoutRecord[2] - 3rd column with name txout.address (as out_address)
+            // txoutRecord[3] - 4th column with name txout.value (as out_value)
 
             if (txoutRecord[5] == null || txoutRecord[2] == null) {
                 return;
@@ -86,7 +90,7 @@ public class PrepareThirdJoin {
             outkey.set(txoutRecord[5]);
 
             // Flag this record for the reducer and then output
-            outvalue.set("B" + txoutRecord[2]);
+            outvalue.set("B" + txoutRecord[2] + "," + txoutRecord[3]);
             context.write(outkey, outvalue);
         }
     }

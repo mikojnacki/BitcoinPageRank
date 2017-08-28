@@ -31,7 +31,7 @@ import java.util.Arrays;
  * JOIN txout out2 ON txinprevid.tx_id = out2.tx_id;
  *
  * The result is a table with 2 columns:
- * | in_address | out_address |
+ * | in_address | out_address | amount |
  *
  * The result table is used by BuildTextGraph class to create adjacency list of graph of Bitcoin addresses
  */
@@ -111,12 +111,14 @@ public class PrepareDataset extends Configured implements Tool {
         LOG.info(" - outputDir: " + outputPath);
 
         // Run JOIN jobs
-        runFirstJoin(txinInputPath, txInputPath, outputPath, "inner");
-        runSecondJoin(outputPath + "/first-join", txoutInputPath, outputPath, "inner");
-        runThirdJoin(outputPath + "/second-join", txoutInputPath, outputPath, "inner");
-        runDistinctOutAddresses(outputPath + "/third-join", outputPath);
+        //runFirstJoin(txinInputPath, txInputPath, outputPath, "inner");
+        //runSecondJoin(outputPath + "/first-join", txoutInputPath, outputPath, "inner");
+        //runThirdJoin(outputPath + "/second-join", txoutInputPath, outputPath, "inner");
+        //runFourthJoin(outputPath + "/third-join", txInputPath, outputPath, "inner");
+        //runMapToEdges(outputPath + "/fourth-join", outputPath);
+        runDistinctOutAddresses(outputPath + "/edges", outputPath);
         runRemainingNodesJoin(outputPath + "/distinct-out-addresses",
-                outputPath + "/third-join", outputPath, "leftouter"); // left outer join with result of Third JOIN
+                outputPath + "/edges", outputPath, "leftouter"); // left outer join with result of Third JOIN
 
         //TODO: consider to remove mid-steps data
 
@@ -251,7 +253,85 @@ public class PrepareDataset extends Configured implements Tool {
 
     }
 
-    private void runDistinctOutAddresses(String thirdJoinInputPath, String outputPath)
+    private void runFourthJoin(String thirdJoinInputPath, String txInputPath, String outputPath, String joinType)
+            throws IOException, InterruptedException, ClassNotFoundException {
+
+        //SELECT in_address, in_value, out_addres, out_value FROM third-join
+        //JOIN tx A ON third-join.tx_id = A.id;
+
+        Job job = Job.getInstance(getConf());
+        job.setJobName("PrepareDataset - fourth JOIN");
+        job.setJarByClass(PrepareDataset.class);
+        job.getConfiguration().set("join.type", joinType);
+
+        String out = outputPath + "/fourth-join";
+
+        LOG.info("Fourth JOIN");
+        LOG.info(" - thirdJoinResultInput: " + thirdJoinInputPath);
+        LOG.info(" - txInput: " + txInputPath);
+        LOG.info(" - output: " + out);
+        LOG.info(" - joinType: " + joinType);
+
+        MultipleInputs.addInputPath(job, new Path(thirdJoinInputPath),
+                TextInputFormat.class, PrepareFourthJoin.ThirdJoinMapper.class);
+        MultipleInputs.addInputPath(job, new Path(txInputPath),
+                TextInputFormat.class, PrepareFourthJoin.TxJoinMapper.class);
+
+        job.setReducerClass(PrepareFourthJoin.FourthJoinReducer.class);
+
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(Text.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        job.setOutputFormatClass(TextOutputFormat.class);
+        FileOutputFormat.setOutputPath(job, new Path(out));
+
+        FileSystem.get(getConf()).delete(new Path(out), true);
+
+        long startTime = System.currentTimeMillis();
+        job.waitForCompletion(true);
+        System.out.println("Fourth JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+    }
+
+    private void runMapToEdges(String fourthJoinInputPath, String outputPath)
+            throws IOException, InterruptedException, ClassNotFoundException {
+        // map result of fourth-join into proper edge list:
+        // in_address, out_address, amount
+
+        Job job = Job.getInstance(getConf());
+        job.setJobName("PrepareDataset - map to edges");
+        job.setJarByClass(PrepareDataset.class);
+
+        String out = outputPath + "/edges";
+
+        LOG.info("Mapping to edges");
+        LOG.info(" - fourthJoinResultInput: " + fourthJoinInputPath);
+        LOG.info(" - output: " + out);
+
+        FileInputFormat.addInputPath(job, new Path(fourthJoinInputPath));
+
+        job.setMapperClass(PrepareMapToEdges.EdgesMapper.class);
+        job.setNumReduceTasks(0);
+
+        job.setMapOutputKeyClass(NullWritable.class);
+        job.setMapOutputValueClass(Text.class);
+
+        job.setOutputKeyClass(NullWritable.class);
+        job.setOutputValueClass(Text.class);
+
+        job.setOutputFormatClass(TextOutputFormat.class);
+        FileOutputFormat.setOutputPath(job, new Path(out));
+
+        FileSystem.get(getConf()).delete(new Path(out), true);
+
+        long startTime = System.currentTimeMillis();
+        job.waitForCompletion(true);
+        System.out.println("Map to edges job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+    }
+
+    private void runDistinctOutAddresses(String edgesInputPath, String outputPath)
             throws IOException, InterruptedException, ClassNotFoundException {
 
         // SELECT DISTINCT A.out_address FROM edges
@@ -263,10 +343,10 @@ public class PrepareDataset extends Configured implements Tool {
         String out = outputPath + "/distinct-out-addresses";
 
         LOG.info("DISTINCT out addresses");
-        LOG.info(" - thirdJoinInputPath: " + thirdJoinInputPath);
+        LOG.info(" - edgesInputPath: " + edgesInputPath);
         LOG.info(" - output: " + out);
 
-        FileInputFormat.addInputPath(job, new Path(thirdJoinInputPath));
+        FileInputFormat.addInputPath(job, new Path(edgesInputPath));
 
         job.setMapperClass(PrepareDistinctOutAddresses.DistinctMapper.class);
         job.setReducerClass(PrepareDistinctOutAddresses.DistinctReducer.class);
@@ -284,10 +364,10 @@ public class PrepareDataset extends Configured implements Tool {
 
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
-        System.out.println("Third JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+        System.out.println("DISTINCT job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
     }
 
-    private void runRemainingNodesJoin(String distinctOutAddressesInputPath, String thirdJoinInputPath,
+    private void runRemainingNodesJoin(String distinctOutAddressesInputPath, String edgesInputPath,
                                        String outputPath, String joinType)
             throws IOException, InterruptedException, ClassNotFoundException {
 
@@ -304,13 +384,13 @@ public class PrepareDataset extends Configured implements Tool {
 
         LOG.info("Remaining nodes JOIN");
         LOG.info(" - distinctOutAddressesInput: " + distinctOutAddressesInputPath);
-        LOG.info(" - edgesInput: " + thirdJoinInputPath);
+        LOG.info(" - edgesInput: " + edgesInputPath);
         LOG.info(" - output: " + out);
         LOG.info(" - joinType: " + joinType);
 
         MultipleInputs.addInputPath(job, new Path(distinctOutAddressesInputPath),
                 TextInputFormat.class, PrepareRemainingNodesJoin.DistinctOutAddressesJoinMapper.class);
-        MultipleInputs.addInputPath(job, new Path(thirdJoinInputPath),
+        MultipleInputs.addInputPath(job, new Path(edgesInputPath),
                 TextInputFormat.class, PrepareRemainingNodesJoin.OutAddressesJoinMapper.class);
 
         job.setReducerClass(PrepareRemainingNodesJoin.RemainingNodesJoinReducer.class);
@@ -329,6 +409,6 @@ public class PrepareDataset extends Configured implements Tool {
 
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
-        System.out.println("Third JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+        System.out.println("Remaining nodes JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
     }
 }

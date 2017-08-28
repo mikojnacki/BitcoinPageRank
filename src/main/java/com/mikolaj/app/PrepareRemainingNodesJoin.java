@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
+ * WEIGHTED VERSION -
+ *
  * Based on https://github.com/adamjshook/mapreducepatterns
  * Credits to Adam J. Shook @adamjshook
  *
@@ -72,7 +74,7 @@ public class PrepareRemainingNodesJoin extends Configured implements Tool {
 
     public static class OutAddressesJoinMapper extends Mapper<Object, Text, Text, Text> {
 
-        // takes out addresses form table edges
+        // takes in addresses form table edges
 
         private Text outkey = new Text();
         private Text outvalue = new Text();
@@ -84,7 +86,6 @@ public class PrepareRemainingNodesJoin extends Configured implements Tool {
             // Split the input string
             String[] record = value.toString().trim().split(",");
             String inAddress = record[0]; // 1st column stands for in address
-            //txRecord[1] -> 2nd column stands for out address
 
             if (inAddress == null) {
                 return;

@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 /**
+ * WEIGHTED VERSION - now out_address is taken from edges instead of third-join
+ *
  * Based on https://github.com/adamjshook/mapreducepatterns
  * Credits to Adam J. Shook @adamjshook
  *
@@ -29,8 +31,8 @@ import java.util.Arrays;
  *
  * SELECT DISTINCT A.out_address FROM edges
  *
- * Where edges is a result of 3 previous joins (runFirstJoin(), runSecondJoin(), runThirdJoin()) with table structure:
- * | in_address | out address |
+ * Where edges table structure:
+ * | in_address | out_address and values |
  *
  * The result is a edges table with columns:
  * | out_address |
@@ -50,17 +52,17 @@ public class PrepareDistinctOutAddresses extends Configured implements Tool {
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 
             String[] mapRecord = value.toString().trim().split(",");
-            // out_address -> mapRecord[1]
+            // remember that mapRecord is out_addres|amount
             if (mapRecord[1] == null) {
                 return;
             }
-            outAddress.set(mapRecord[1]);
+            String[] addressRecord = mapRecord[1].trim().split("\\|");
+            outAddress.set(addressRecord[0]);
             context.write(outAddress, NullWritable.get());
         }
     }
 
-    public static class DistinctReducer extends
-            Reducer<Text, NullWritable, Text, NullWritable> {
+    public static class DistinctReducer extends Reducer<Text, NullWritable, Text, NullWritable> {
 
         @Override
         public void reduce(Text outAddress, Iterable<NullWritable> values, Context context)

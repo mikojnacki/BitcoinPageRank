@@ -9,12 +9,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
+ * WEIGHTED VERSION - add txout.value (in_address value)
+ *
  * Based on https://github.com/adamjshook/mapreducepatterns
  * Credits to Adam J. Shook @adamjshook
  *
  * Classes to be used from withing PrepareDataset.class runSecondJoin() method to perform query:
  *
- * SELECT txinprevid.tx_id, out1.addres as in_address
+ * SELECT txinprevid.tx_id, out1.address AS in_address, out1.value AS in_value
  * JOIN txout out1 ON (txinprevid.prev_id = out1.tx_id AND txinprevid.prev_out_index = out1.tx_idx)
  *
  * The txinprevid input dataset consist of columns:
@@ -23,7 +25,7 @@ import java.util.ArrayList;
  *
  * The result is a table with given columns:
  *
- * | txinprevid.tx_id | out1.address (as in_address) |
+ * | txinprevid.tx_id | out1.address (as in_address) | out1.values (as in_value) |
  *
  */
 public class PrepareSecondJoin {
@@ -80,6 +82,7 @@ public class PrepareSecondJoin {
             // txoutRecord[5] - 6th column with name txout.tx_id
             // txoutRecord[1] - 2nd column with name txout.tx_idx
             // txoutRecord[2] - 3rd column with name txout.address (as in_address)
+            // txoutRecord[3] - 4th column with name txout.value (as in_value)
 
             if (txoutRecord[5] == null || txoutRecord[1] == null) {
                 return;
@@ -90,7 +93,7 @@ public class PrepareSecondJoin {
             //LOG.info("TxoutAsOut1JoinMapper: " + outkey.toString() + " " + txoutRecord[2]);
 
             // Flag this record for the reducer and then output
-            outvalue.set("B" + txoutRecord[2]);
+            outvalue.set("B" + txoutRecord[2] + "," + txoutRecord[3]);
             context.write(outkey, outvalue);
         }
     }

@@ -21,28 +21,26 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
- * Created by Mikolaj on 17.08.17.
+ * WEIGHTED VERSION
  *
- * Job takes text data consisting of 2 columns, delimited by whitespace, returned by this generic HIVE query:
+ * Job takes text data consisting of 3 columns, delimited by comma, produced by PrepareDataset (edges)
  *
- * SELECT out1.address as in_address, out2.address as out_address
- * FROM (SELECT txin.prev_out, txin.prev_out_index, txin.tx_id, tx.id AS prev_id FROM txin JOIN tx ON txin.prev_out = tx.hash ) txinprevid
- * JOIN txout out1 ON (txinprevid.prev_id = out1.tx_id AND txinprevid.prev_out_index = out1.tx_idx)
- * JOIN txout out2 ON txinprevid.tx_id = out2.tx_id
- * JOIN tx ON txinprevid.tx_id = tx.id;
+ *  Example of data:
  *
- *  Example of data: inAddress> outAddress
- *
- *  12VNkCDJadLMS7oDvVZXY9NrFEiihCvyA4 1BpkG9FwkQLbT7irsvwG7HUz3QgTdCsZYs
- *  1AH8157cSKaULn2dxZiGnYzYnvmBrTAAHq 1NLM9wmdMsUoeRmDdqjE5VjNXwot1MV68q
+ *  12VNkCDJadLMS7oDvVZXY9NrFEiihCvyA4,1BpkG9FwkQLbT7irsvwG7HUz3QgTdCsZYs|1000
+ *  1AH8157cSKaULn2dxZiGnYzYnvmBrTAAHq,1NLM9wmdMsUoeRmDdqjE5VjNXwot1MV68q|295341
  *  ....
  *
- *  Job parses and groups it, giving on the output 2 columns: inAddress (node id) and list of outAddresses (adjacency list)
+ *  Job parses and groups it, giving on the output 2 columns: inAddress (node id) and list of outAddress|amountSum (adjacency list)
  *  Modified -> creates graph insead of multigraph (reduces duplicate edges)
+ *  Modified -> sum amounts
  *
+ *  Seems OK
  */
 public class BuildTextGraph extends Configured implements Tool {
     private static final Logger LOG = Logger.getLogger(BuildPageRankRecords.class);
@@ -51,28 +49,29 @@ public class BuildTextGraph extends Configured implements Tool {
 
     private static class MyMapper extends Mapper<LongWritable, Text, Text, Text> {
         //private static final Text inAddress = new Text();
-        //private static final Text outAddress = new Text();
+        //private static final Text outAddressAndAmount = new Text();
 
         public void map(LongWritable key, Text t, Context context) throws IOException, InterruptedException {
 
             Text inAddress = new Text();
-            Text outAddress = new Text();
-            //String[] arr = t.toString().trim().split("\\s+");
+            Text outAddressAndAmount = new Text();
+
             String[] arr = t.toString().trim().split(",");
+            String[] arrOut = arr[1].trim().split("\\|");
 
             if (arr.length != 2) {
-                throw new RuntimeException("Wrong input data! Should be '<inAddress> <outAdress>'");
+                throw new RuntimeException("Wrong input data! Should be 'inAddress,outAddress|amount'");
             } else {
                 inAddress.set(arr[0]);
-                outAddress.set(arr[1]);
+                outAddressAndAmount.set(arr[1]);
             }
 
             // omit edges including unknown addresses
-            if (!arr[0].equals(UNKNOWN_ADDRESS) && !arr[1].equals(UNKNOWN_ADDRESS)) {
+            if (!arr[0].equals(UNKNOWN_ADDRESS) && !arrOut[0].equals(UNKNOWN_ADDRESS)) {
                 context.getCounter("graph", "numNodes").increment(1);
                 context.getCounter("graph", "numEdges").increment(1);
                 // emit
-                context.write(inAddress, outAddress);
+                context.write(inAddress, outAddressAndAmount);
             }
 
         }
@@ -86,28 +85,54 @@ public class BuildTextGraph extends Configured implements Tool {
         public void reduce(Text inAddress, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
 
-            //ArrayList<String> adjacencyArray = new ArrayList<>();
-            Set<String> adjacencySet = new HashSet<>();
-
-            // deduplicate adjacency list
+            // Build HashMap from values, summing per key
+            HashMap<String, Long> hm = new HashMap<>();
+            String hmKey;
+            String hmValue;
+            // HashMap ensures deduplication. Sum amounts per key:
             for (Text t : values) {
-                adjacencySet.add(t.toString());
-                //adjacencyArray.add(t.toString()); // for debug
+                hmKey = t.toString().trim().split("\\|")[0];
+                hmValue = t.toString().trim().split("\\|")[1];
+                if (hm.containsKey(hmKey)) {
+                    hm.put(hmKey, Long.valueOf(hmValue) + hm.get(hmKey));
+                } else {
+                    hm.put(hmKey, Long.valueOf(hmValue));
+                }
             }
-//            if (adjacencyArray.size() != adjacencySet.size()) {
-//                LOG.info("adjacency list before deduplication: " + String.valueOf(adjacencyArray.size())); // for debug
-//                LOG.info("adjacency list after deduplication: " + String.valueOf(adjacencySet.size())); // for debug
-//                LOG.info(String.valueOf(adjacencyArray.size() - adjacencySet.size()) + " edges has been deduplicated");
+
+            // fold HashMap as one line String (adjcacency list) delimited with space and save it as Text
+
+            // *** FIRST VERSION ***
+
+//            // firstly count total outSum
+//            BigDecimal outSum = new BigDecimal(0);
+//            for (Long v : hm.values()) {
+//                outSum = outSum.add(new BigDecimal(v));
 //            }
+//            // now build outAddressesAndWeights
+//            String outAddressesAndWeights = "";
+//            for (Map.Entry<String, Long> entry : hm.entrySet()) {
+//                try {
+//                    outAddressesAndWeights = outAddressesAndWeights + DELIMITER + entry.getKey() + "|"
+//                            + String.valueOf(new BigDecimal(entry.getValue()).setScale(4, RoundingMode.HALF_EVEN).divide(outSum, RoundingMode.HALF_EVEN));
+//                } catch (ArithmeticException e) {
+//                    e.printStackTrace(); // may throw divide by zero exception?
+//                }
+//            }
+//            context.write(inAddress, new Text(outAddressesAndWeights));
 
+            // *** SECOND VERSION ***
 
-            String outAddresses = "";
-            // build String delimited with space and save it as Text
-            for (String value : adjacencySet) {
-                outAddresses = outAddresses + DELIMITER + value;
+            String outAddressesAndAmounts = "";
+            Long outSum = 0L;
+            for (Map.Entry<String, Long> entry : hm.entrySet()) {
+                outAddressesAndAmounts = outAddressesAndAmounts + DELIMITER + entry.getKey() + "|"
+                        + String.valueOf(entry.getValue());
+                outSum = outSum + entry.getValue();
             }
-            // emit
-            context.write(inAddress, new Text(outAddresses));
+            context.write(new Text(inAddress.toString() + "|" + String.valueOf(outSum)),
+                    new Text(outAddressesAndAmounts));
+
         }
 
     }
@@ -189,7 +214,7 @@ public class BuildTextGraph extends Configured implements Tool {
 
         // copy join-Output/remaining-nodes-join/part-r-00000 to graph-TextRecords
         FileSystem fs = FileSystem.get(conf);
-        Path src = new Path("join-Output/remaining-nodes-join/remaining-nodes-r-00000");
+        Path src = new Path("join-Output-Weighted/remaining-nodes-join/remaining-nodes-r-00000");
         Path dst = new Path(outputPath + "/");
         FileUtil.copy(fs, src, fs, dst, false, false, conf);
         // concat with remaining nodes
