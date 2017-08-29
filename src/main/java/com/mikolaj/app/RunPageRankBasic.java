@@ -300,10 +300,12 @@ public class RunPageRankBasic extends Configured implements Tool {
         LOG.info(" - user range partitioner: " + useRange);
 
         // Iterate PageRank.
-
+        long startTime = System.currentTimeMillis();
         for (int i = s; i < e; i++) {
             iteratePageRank(i, i + 1, basePath, n, useCombiner, useInmapCombiner);
         }
+        // Save execution time on disk
+        MyUtils.generateReport(RunPageRankBasic.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
         return 0;
     }
