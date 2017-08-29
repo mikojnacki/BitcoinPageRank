@@ -106,7 +106,12 @@ public class PartitionGraph extends Configured implements Tool {
 
         FileSystem.get(conf).delete(new Path(outPath), true);
 
+        long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
+        System.out.println("\nJob finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds\n");
+
+        // Save execution time on disk
+        MyUtils.generateReport(PartitionGraph.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
         return 0;
     }

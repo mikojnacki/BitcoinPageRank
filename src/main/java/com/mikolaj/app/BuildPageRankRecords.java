@@ -161,7 +161,12 @@ public class BuildPageRankRecords extends Configured implements Tool {
         // Delete the output directory if it exists already.
         FileSystem.get(conf).delete(new Path(outputPath), true);
 
+        long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
+        System.out.println("\nJob finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds\n");
+
+        // Save execution time on disk
+        MyUtils.generateReport(BuildPageRankRecords.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
         return 0;
     }

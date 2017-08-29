@@ -292,9 +292,12 @@ public class RunPageRankBasic extends Configured implements Tool {
         LOG.info(" - user range partitioner: " + useRange);
 
         // Iterate PageRank.
+        long startTime = System.currentTimeMillis();
         for (int i = s; i < e; i++) {
             iteratePageRank(i, i + 1, basePath, n, useCombiner, useInmapCombiner);
         }
+        // Save execution time on disk
+        MyUtils.generateReport(RunPageRankBasic.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
         return 0;
     }
@@ -379,6 +382,11 @@ public class RunPageRankBasic extends Configured implements Tool {
         job.waitForCompletion(true);
         System.out.println("Job Finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
 
+        // Save execution time on disk
+        MyUtils.generateReport(RunPageRankBasic.class.getSimpleName() + "-Phase1-Iter" + String.valueOf(j),
+                MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
+
         float mass = Float.NEGATIVE_INFINITY;
         FileSystem fs = FileSystem.get(getConf());
         for (FileStatus f : fs.listStatus(new Path(outm))) {
@@ -431,6 +439,11 @@ public class RunPageRankBasic extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("Job Finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport(RunPageRankBasic.class.getSimpleName() + "-Phase2-Iter" + String.valueOf(j),
+                MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 
     // Adds two log probs.
