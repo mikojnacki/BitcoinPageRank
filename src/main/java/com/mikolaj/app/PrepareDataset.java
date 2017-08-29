@@ -111,6 +111,7 @@ public class PrepareDataset extends Configured implements Tool {
         LOG.info(" - outputDir: " + outputPath);
 
         // Run JOIN jobs
+        long startTime = System.currentTimeMillis();
         runFirstJoin(txinInputPath, txInputPath, outputPath, "inner");
         runSecondJoin(outputPath + "/first-join", txoutInputPath, outputPath, "inner");
         runThirdJoin(outputPath + "/second-join", txoutInputPath, outputPath, "inner");
@@ -119,6 +120,9 @@ public class PrepareDataset extends Configured implements Tool {
         runDistinctOutAddresses(outputPath + "/edges", outputPath);
         runRemainingNodesJoin(outputPath + "/distinct-out-addresses",
                 outputPath + "/edges", outputPath, "leftouter"); // left outer join with result of Third JOIN
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareDataset.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
         //TODO: consider to remove mid-steps data
 
@@ -165,6 +169,10 @@ public class PrepareDataset extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("First JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareFirstJoin.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 
     private void runSecondJoin(String firstJoinInputPath, String txoutInputPath, String outputPath, String joinType)
@@ -207,6 +215,9 @@ public class PrepareDataset extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("Second JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareSecondJoin.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
     }
 
@@ -251,6 +262,9 @@ public class PrepareDataset extends Configured implements Tool {
         job.waitForCompletion(true);
         System.out.println("Third JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
 
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareThirdJoin.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 
     private void runFourthJoin(String thirdJoinInputPath, String txInputPath, String outputPath, String joinType)
@@ -293,6 +307,10 @@ public class PrepareDataset extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("Fourth JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareFourthJoin.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 
     private void runMapToEdges(String fourthJoinInputPath, String outputPath)
@@ -329,6 +347,10 @@ public class PrepareDataset extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("Map to edges job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareMapToEdges.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 
     private void runDistinctOutAddresses(String edgesInputPath, String outputPath)
@@ -365,6 +387,10 @@ public class PrepareDataset extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("DISTINCT job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareDistinctOutAddresses.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 
     private void runRemainingNodesJoin(String distinctOutAddressesInputPath, String edgesInputPath,
@@ -410,5 +436,9 @@ public class PrepareDataset extends Configured implements Tool {
         long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
         System.out.println("Remaining nodes JOIN job finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + PrepareRemainingNodesJoin.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
+
     }
 }

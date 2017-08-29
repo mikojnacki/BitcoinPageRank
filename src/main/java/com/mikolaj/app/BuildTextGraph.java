@@ -219,7 +219,12 @@ public class BuildTextGraph extends Configured implements Tool {
         // Delete the output directory if it exists already.
         FileSystem.get(conf).delete(new Path(outputPath), true);
 
+        long startTime = System.currentTimeMillis();
         job.waitForCompletion(true);
+        System.out.println("\nJob finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds\n");
+
+        // Save execution time on disk
+        MyUtils.generateReport("Weighted-" + BuildTextGraph.class.getSimpleName(), MyUtils.getCurrentDateTime() ,System.currentTimeMillis() - startTime);
 
         // *** Finalize creation of graph - add remaining nodes form out_address ***
         // *** Remaining nodes obtained by PrepareDataset metods: runDistinctOutAddresses() and runRemainingNodesJoin()
