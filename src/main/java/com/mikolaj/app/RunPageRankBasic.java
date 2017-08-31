@@ -176,6 +176,39 @@ public class RunPageRankBasic extends Configured implements Tool {
         }
     }
 
+    // Combiner: sums partial PageRank contributions and passes node structure along.
+    private static class CombineClass extends Reducer<Text, PageRankNode, Text, PageRankNode> {
+        private static final PageRankNode intermediateMass = new PageRankNode();
+
+        @Override
+        public void reduce(Text nid, Iterable<PageRankNode> values, Context context)
+                throws IOException, InterruptedException {
+            int massMessages = 0;
+
+            // Remember, PageRank mass is stored as a log prob.
+            float mass = Float.NEGATIVE_INFINITY;
+            for (PageRankNode n : values) {
+                if (n.getType() == PageRankNode.Type.Structure) {
+                    // Simply pass along node structure.
+                    context.write(nid, n);
+                } else {
+                    // Accumulate PageRank mass contributions.
+                    mass = sumLogProbs(mass, n.getPageRank());
+                    massMessages++;
+                }
+            }
+
+            // Emit aggregated results.
+            if (massMessages > 0) {
+                intermediateMass.setNodeId(nid);
+                intermediateMass.setType(PageRankNode.Type.Mass);
+                intermediateMass.setPageRank(mass);
+
+                context.write(nid, intermediateMass);
+            }
+        }
+    }
+
     // ########################################################################################################
 
     // Mapper that distributes the missing PageRank mass (lost at the dangling nodes) and takes care
@@ -369,9 +402,9 @@ public class RunPageRankBasic extends Configured implements Tool {
 
 //        job.setMapperClass(useInMapperCombiner ? MapWithInMapperCombiningClass.class : MapClass.class);
 //
-//        if (useCombiner) {
-//            job.setCombinerClass(CombineClass.class);
-//        }
+        if (useCombiner) {
+            job.setCombinerClass(CombineClass.class);
+        }
 
         job.setReducerClass(ReduceClass.class);
 
