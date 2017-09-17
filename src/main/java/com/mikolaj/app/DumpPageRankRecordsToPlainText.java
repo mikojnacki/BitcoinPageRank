@@ -103,3 +103,5 @@ public class DumpPageRankRecordsToPlainText extends Configured implements Tool {
         ToolRunner.run(new DumpPageRankRecordsToPlainText(), args);
     }
 }
+
+//a
