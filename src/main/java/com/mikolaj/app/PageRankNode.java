@@ -122,11 +122,17 @@ public class PageRankNode implements Writable {
 //    public String toString() {
 //        return String.format("%s %.4f %s", nodeid, pagerank, (adjacenyList == null ? " " : adjacenyList.toString()));
 //    }
+//
+//    @Override
+//    public String toString() {
+//        return String.format("{%s %.4f %s}", nodeid, pagerank, (adjacenyList == null ? "[]" : adjacenyList.toString()));
+//    }
 
     @Override
     public String toString() {
-        return String.format("{%s %.4f %s}", nodeid, pagerank, (adjacenyList == null ? "[]" : adjacenyList.toString()));
+        return String.format("%.8f", pagerank);
     }
+
 
     /**
      * Returns the serialized representation of this object as a byte array.
